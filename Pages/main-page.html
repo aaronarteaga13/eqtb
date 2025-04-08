@@ -21,8 +21,8 @@
 <header>
     <nav style="background: #f4f4f4; padding: 15px 20px; display: flex; justify-content: flex-end; align-items: center;">
         <div style="display: flex; gap: 15px;">
-            <a href="" style="color: #1d2545;">login</a>
-            <a href="" style="color: #1d2545;">register</a>
+            <a href="/Users/aaronarteaga/Desktop/my-portfolio/EQTB/Pages/log-in.html" style="color: #1d2545;">login</a>
+            <a href="/Users/aaronarteaga/Desktop/my-portfolio/EQTB/Pages/register.html" style="color: #1d2545;">register</a>
         </div>
     </nav>
 </header>
@@ -45,7 +45,7 @@
 <!--logo-->
 <!--subtitles-->
     <section style="text-align: center;">
-        <img src="images/logo-2.png" alt="EQTB Logo" style="width: 200px; height: auto; margin: 1px auto;">        
+        <img src="/Users/aaronarteaga/Desktop/my-portfolio/EQTB/images/logo-2.png" alt="EQTB Logo" style="width: 150px; height: auto; margin: 1px auto;">        
         <p style="color: #1d2545;">Welcome to your equation toolbox.</p>
         <p style="color: #1d2545;">Save equations, define your variables and input values to solve your equations.</p>
     </section>
@@ -556,7 +556,7 @@
                     break;
             }
             if (filter === 'favorites' && filteredEquations.length === 0) {
-                document.getElementById("first-equation-message").innerHTML = '<h3>There is nothing here.</h3><p>Favourited equations will show up here.</p>';
+                document.getElementById("first-equation-message").innerHTML = '<h3>There is nothing here.</h3><p>Your equations will show up here.</p>';
                 document.getElementById("first-equation-message").style.display = 'block';
             } else {
                 document.getElementById("first-equation-message").style.display = 'none';
