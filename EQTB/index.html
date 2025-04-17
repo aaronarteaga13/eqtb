@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Store, organize, and solve your equations with ease. Add variable descriptions and units to build your personal math reference."> 
+    <title>Equation Toolbox</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.2/math.min.js"></script>
+    <script src="https://unpkg.com/mathlive"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+    </style>
+</head>
+
+<body>
+    <header>
+        <nav style="background: #f1f0f0; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 650px; margin: 30px auto 0 auto;">
+            <div style="display: flex; align-items: center;">
+                <!--<img src="images/logo/logo-graphic.png" alt="Logo" style="height: 40px; width: auto;">-->
+                <span style="margin-left: 10px; font-size: 24px; font-weight: bold;">eqtb</span>
+            </div>
+            <div>
+                <a href="mobile.html" class='button2' style="font-size: 14px; margin-right: 20px; text-decoration: none; color: black; font-weight: 500;">Mobile app</a>
+                <a href="login.html" class='button2' style="font-size: 14px; margin-right: 20px; text-decoration: none; color: black; font-weight: 500;">Login</a>
+                <a href="register.html" class="button" style="background-color: #2563eb;">Get started</a>
+            </div>
+        </nav>
+    </header>
+
+    <!--PAGE-->
+    <div class="content-container">
+        <div class="text-container">
+            <section> <!--User Count-->
+                <div class="user-count" style="margin-left: 77px; margin-top: 50px;">
+                    <span style="font-size: 24px; font-weight: bold; display: inline-block; border-bottom: 2px solid black; padding-bottom: 0px;">10+ Users</span>
+                    <p class="description-text" style="color: #000000; margin-top: 3px;">And growing!</p>
+                </div>
+            </section>
+
+            <section> <!--Title-->
+                <div class="intro">
+                    <img src="images/logo/logo-main.png" alt="Descriptive Alt Text" style="width: 80%; height: auto; margin-left: 9px; margin-top: 0px">
+                </div>
+            </section>
+
+            <section> <!--Description-->
+                <div class="description" style="font-size: 18px; margin-left: 70px; margin-top: 0px; line-height: 1.6;">
+                    <p class="description-text" style="color: #000000;">
+                         Ideal for <b style='color:#2563eb'>students</b>, <b style='color:#2563eb'>educators</b>, and <b style='color:#2563eb'>professionals</b>,
+                        </br>our tool helps you store, organize, and solve</br> 
+                        equations. Add variable descriptions, units, notes,</br>
+                        and navigate easily through a <i style='color:#2563eb'>dynamic</i> interface.
+                    </p>
+                    <p class="subtitle" style="color: #000000; margin-top: 10px;">
+                        Join a growing number of users who are saying</br>
+                        goodbye to trying to find equations in <i style='color:#eb2525'><b>hundreds<br>
+                        of notebooks and papers.</i></b></br>
+                    </p>
+                </div>
+            </section>
+
+            <section> <!--Action-->
+                <div class="action" style='margin-left: 70px;'>
+                </br>
+                <a href="register.html" class="button">Start for free today</a>
+                </div>
+            </section>
+        </div>
+
+        <div class="image-container">
+            <img src="images/graphics/b.png" alt="Descriptive Alt Text" style="width: 100%; height: auto; margin-left: -80px; margin-top: 60px">
+        </div>
+    </div>
+</br>
+</br>
+
+<!--SCROLLER-->
+    <section class="scrolling-gallery">
+        <div class="image-scroll-container">
+            <div class="image-set">
+                <img src="images/cards/1.png" alt="Equation Card 1">
+                <img src="images/cards/2.png" alt="Equation Card 2">
+                <img src="images/cards/3.png" alt="Equation Card 3">
+                <img src="images/cards/4.png" alt="Equation Card 4">
+                <img src="images/cards/5.png" alt="Equation Card 5">
+                <img src="images/cards/8.png" alt="Equation Card 8">
+                <img src="images/cards/9.png" alt="Equation Card 9">
+                <img src="images/cards/10.png" alt="Equation Card 10">
+                <img src="images/cards/11.png" alt="Equation Card 11">
+                <img src="images/cards/12.png" alt="Equation Card 12">
+                <img src="images/cards/1.png" alt="Equation Card 1">
+                <img src="images/cards/2.png" alt="Equation Card 2">
+                <img src="images/cards/3.png" alt="Equation Card 3">
+                <img src="images/cards/4.png" alt="Equation Card 4">
+                <img src="images/cards/5.png" alt="Equation Card 5">
+                <img src="images/cards/8.png" alt="Equation Card 8">
+                <img src="images/cards/9.png" alt="Equation Card 9">
+                <img src="images/cards/10.png" alt="Equation Card 10">
+                <img src="images/cards/11.png" alt="Equation Card 11">
+                <img src="images/cards/12.png" alt="Equation Card 12">
+        </div>
+    </section>
+
+    <section> <!--Footer-->
+        <footer style="background: #f1f0f0; padding: 20px; text-align: center; font-size: 14px; color: #555555; margin-top: 50px;">
+            <p>&copy; 2023 Equation Toolbox. All rights reserved.</p>
+            <p>Privacy Policy | Terms of Service</p>
+        </footer>
+    </section>
+</body>
+</html>

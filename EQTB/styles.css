@@ -1,0 +1,145 @@
+/* Fonts */
+body {
+    font-family: 'Sora', sans-serif; /* Apply Sora font to the entire body */
+}
+
+
+
+
+/* NAV BAR */
+
+.button {
+    background-color: #2563eb;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, padding 0.2s ease;
+    font-family: 'Sora', sans-serif;
+    font-weight: 500;
+}
+
+.button:hover {
+    padding: 12px 22px; /* Slightly larger padding */
+    color: #ffffff; /* Ensure text stays white */
+}
+.button2 {
+    color: white;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, padding 0.2s ease;
+    font-family: 'Sora', sans-serif;
+    font-weight: 500;
+}
+
+.button2:hover {
+    background-color: #2564eb00;
+    padding: 12px 22px; /* Slightly larger padding */
+    color: #ffffff; /* Ensure text stays white */
+}
+nav {
+    background-color: white; /* Match background */
+    padding: 10px 20px; /* Padding for spacing */
+    display: flex; /* Flexbox for layout */
+    justify-content: space-between; /* Space between logo and buttons */
+    align-items: center; /* Vertical alignment */
+    border-radius: 20px; /* Rounded corners */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+    max-width: 650px; /* Limit the width of the navigation bar */
+    margin: 0 auto; /* Center the navigation bar horizontally */
+}
+nav img {
+    height: 40px;
+    width: auto;
+}
+nav span {
+    margin-left: 10px;
+    font-size: 24px;
+    font-weight: bold;
+}
+nav a {
+    margin-right: 20px;
+    text-decoration: none;
+    color: black;
+    font-weight: 500;
+}
+nav a:last-child {
+    background-color: #000000;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 20px;
+}
+
+/* LEFT SIDE */
+h1 {
+    font-size: 100px; /* Much larger font size for the main heading */
+    font-weight: bold; /* Ensure it's bold to stand out */
+    color: #000000; /* Optional: specify a color if needed */
+}
+a {
+    transition: background-color 0.3s ease, padding 0.2s ease; /* Smooth transition for hover effects */
+}
+
+a:hover {
+    background-color: #1A4DA2; /* Lighter blue on hover */
+    padding: 12px 22px; /* Slightly larger padding */
+    color: #ffffff; /* Ensure text stays white */
+}
+
+/* RIGHT SIDE */
+.content-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+}
+.text-container {
+    flex: 1; /* Assign flex to take half of the space */
+    margin-right: 20px; /* Add some space between the text and the image */
+}
+.image-container {
+    flex: 1; /* Assign flex to take half of the space */
+}
+.image-container img {
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transition for hover effects */
+    border-radius: 10px; /* Optional: Rounded corners */
+}
+
+.image-container img:hover {
+    transform: scale(1.01) translateY(-10px); /* Slightly enlarge and move upward */
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); /* Add shadow for depth */
+}
+
+
+/*SCROLLER */
+/* Keyframes for seamless scrolling */
+@keyframes scroll {
+    0% {
+        transform: translateX(0); /* Start at the initial position */
+    }
+    100% {
+        transform: translateX(-4000px); /* Move by the total width of one image set */
+    }
+}
+
+.image-scroll-container {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: hidden; /* Hide horizontal scrollbar */
+    animation: scroll 170s linear infinite; /* Adjust timing for smooth scrolling */
+    width: calc((200px + 20px) * 24); /* Set the width to match the total width of the images */
+}
+
+.image-set {
+    display: flex; /* Align images horizontally */
+}
+
+.image-set img {
+    flex-shrink: 0; /* Prevent images from resizing */
+    height: 200px; /* Set the height of the images */
+    width: auto; /* Maintain aspect ratio */
+    margin-right: 20px; /* Space between images */
+}
+body {
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+}

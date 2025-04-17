@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Store, organize, and solve your equations with ease. Add variable descriptions and units to build your personal math reference."> 
+    <title>Equation Toolbox</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.13.11/dist/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.4.2/math.min.js"></script>
+    <script src="https://unpkg.com/mathlive"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js"></script>
+    <link rel="stylesheet" href="1styles.css">
+
+            <!-- Firebase Initialization Code -->
+            <script type="module">
+                import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+                import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
+                import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+                import { getFirestore, collection, addDoc, doc, setDoc, getDocs, query, where, deleteDoc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+    
+                // Your web app's Firebase configuration
+                const firebaseConfig = {
+                    apiKey: "AIzaSyAYyYOd8WneYy5ZFF-SSMJAE2JAG-s437Q",
+                    authDomain: "eqtbquada.firebaseapp.com",
+                    databaseURL: "https://eqtbquada-default-rtdb.firebaseio.com",
+                    projectId: "eqtbquada",
+                    storageBucket: "eqtbquada.firebasestorage.app",
+                    messagingSenderId: "695619978858",
+                    appId: "1:695619978858:web:561dc03e98621a4752ac13",
+                    measurementId: "G-TXB2797Q5S"
+                };
+    
+                // Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                const analytics = getAnalytics(app);
+                const auth = getAuth();
+                const db = getFirestore(app);
+    
+                // Declare signInLink and registerLink outside the onAuthStateChanged function
+                const signInLink = document.querySelector('a[href="login.html"]');
+                const registerLink = document.querySelector('a[href="register.html"]');
+    
+                // Listener to redirect to login page if not signed in and update the profile email if signed in
+                onAuthStateChanged(auth, (user) => {
+                    const userEmailDisplay = document.getElementById('user-email-display'); // Get the email display span
+    
+                    if (user) {
+                        // User is signed in
+                        signInLink.style.display = 'none';
+                        registerLink.style.display = 'none';
+    
+                        // Display the user's email
+                        userEmailDisplay.textContent = user.email;
+                    } else {
+                        // User is signed out
+                        signInLink.style.display = 'inline-block';
+                        registerLink.style.display = 'inline-block';
+    
+                        // Redirect to login page
+                        window.location.href = 'login.html';
+    
+                        // Clear the email display
+                        userEmailDisplay.textContent = '';
+                    }
+                });
+    
+                // Make the signOutUser function globally accessible
+                window.signOutUser = () => {
+                    signOut(auth).then(() => {
+                        // Sign-out successful.
+                        console.log('User signed out successfully');
+                    }).catch((error) => {
+                        console.error('Sign out error', error);
+                    });
+                };
+    
+                // Declare editingIndex globally
+                let editingIndex = null;
+                
+                // Now, define saveEquation inside the module scope
+                window.saveEquation = async () => {
+                    let name = document.getElementById("equation-name").value.trim();
+                    let mathInput = document.getElementById("math-input").value.trim();
+                    let variables = [];
+                    let tagsInput = document.getElementById("equation-tags").value.trim();
+                    let tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim().toLowerCase()) : [];
+                    let notes = document.getElementById("equation-notes").value.trim();
+                
+                    document.querySelectorAll("#variable-container div").forEach(div => {
+                        let variable = div.querySelector(".var-input").value.trim();
+                        let varName = div.querySelector(".var-name").value.trim();
+                        let varUnits = div.querySelector(".var-units").value.trim();
+                        if (variable) variables.push({ variable, varName, varUnits });
+                    });
+                
+                    if (name === "" || mathInput === "") {
+                        alert("Please enter both a name and an equation.");
+                        return;
+                    }
+                
+                    // Get the current user's ID
+                    const user = auth.currentUser;
+                    if (!user) {
+                        alert("You must be logged in to save equations.");
+                        return;
+                    }
+                
+                    const equationData = {
+                        name: name,
+                        equation: mathInput,
+                        variables: variables,
+                        tags: tags,
+                        notes: notes,
+                        userId: user.uid, // Store the user's ID with the equation
+                    };
+                    console.log("equationData:", equationData);
+                
+                    try {
+                        if (editingIndex) { // If editing, update the existing document
+                            const eqRef = doc(db, "equations", editingIndex);
+                            await updateDoc(eqRef, equationData);
+                            console.log("Document updated with ID: ", editingIndex);
+                            editingIndex = null; // Reset editingIndex after updating
+                        } else { // Otherwise, add a new document
+                            const docRef = await addDoc(collection(db, "equations"), equationData);
+                            console.log("Document written with ID: ", docRef.id);
+                        }
+                        closeEquationPopup();
+                        displayEquations();
+                    } catch (e) {
+                        console.error("Error adding/updating document: ", e);
+                    }
+                };    
+                window.displayEquations = async (equations = []) => {
+                    let list = document.getElementById("equation-list");
+                    list.style.display = "grid";
+                    list.style.textAlign = "left";
+                    list.innerHTML = '';
+    
+                    const user = auth.currentUser;
+                    if (!user) {
+                        list.innerHTML = `<p>Please log in to see your equations.</p>`;
+                        return;
+                    }
+    
+                    try {
+                        const q = query(collection(db, "equations"), where("userId", "==", user.uid));
+                        const querySnapshot = await getDocs(q);
+    
+                        if (querySnapshot.empty) {
+                            document.getElementById("first-equation-message").style.display = 'block';
+                        } else {
+                            document.getElementById("first-equation-message").style.display = 'none';
+                            querySnapshot.forEach((doc) => {
+                                const eq = doc.data();
+                                const eqId = doc.id; // Get the document ID
+                                let li = document.createElement("li");
+                                let tagsHtml = '';
+                                if (eq.tags && eq.tags.length > 0) {
+                                    tagsHtml = '<div style="text-align: center; margin-bottom: 10px;">' +
+                                        eq.tags.map(tag => `<span style="background-color: #e0e0e0; color: #333; padding: 3px 6px; border-radius: 4px; margin-right: 5px; font-size:0.8rem;">${tag}</span>`).join('') +
+                                        '</div>';
+                                }
+    
+                                li.innerHTML = `
+                                    <div style="text-align: center; font-weight: bold; font-size: 1.05rem; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">
+                                        ${eq.name}
+                                    </div>
+                                    <div style="text-align: center; margin-bottom: 10px;">
+                                        <math-field read-only>${eq.equation}</math-field>
+                                    </div>
+                                    <hr style="border: none; border-top: 1px solid #ccc; margin: 10px 0;">
+                                    ${tagsHtml}
+                                    <hr style="border: none; border-top: 1px solid #ccc; margin: 10px 0;">
+                                    <div class="card-actions" style="display: flex; justify-content: center; gap: 10px; margin-top: auto;">
+                                        <button class="icon-button" onclick="editEquation('${eqId}'); event.stopPropagation();" title="Edit"><i class="fa fa-edit"></i></button>
+                                        <button class="icon-button" onclick="confirmDelete('${eqId}'); event.stopPropagation();" title="Delete"><i class="fa fa-trash"></i></button>
+                                        <button class="icon-button fav-btn" onclick="toggleFavorite('${eqId}'); event.stopPropagation();" style="color: ${eq.isFavorite ? 'gold' : 'gray'};" title="Favorite"><i class="fa fa-star"></i></button>
+                                        <button class="icon-button" onclick="alert('Solve feature coming soon!'); event.stopPropagation();" title="Solve Equation"><i class="fa fa-calculator"></i></button>
+                                        <button class="icon-button" onclick="openCardPopup('${eqId}'); event.stopPropagation();" title="Expand"><i class="fa fa-expand"></i></button>
+                                    </div>
+                                `;
+                                list.appendChild(li);
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Error getting documents: ", e);
+                    }
+                }
+                window.toggleFavorite = async (eqId) => {
+                    const user = auth.currentUser;
+                    if (!user) {
+                        alert("You must be logged in to toggle favorites.");
+                        return;
+                    }
+                    try {
+                        const eqRef = doc(db, "equations", eqId);
+                        const eqDoc = await getDoc(eqRef);
+                        if (eqDoc.exists()) {
+                            const currentFav = eqDoc.data().isFavorite || false;
+                            await updateDoc(eqRef, {
+                                isFavorite: !currentFav
+                            });
+                            displayEquations(); // Refresh the display
+                        } else {
+                            console.log("No such document!");
+                        }
+                    } catch (e) {
+                        console.error("Error updating document: ", e);
+                    }
+                }
+    
+                window.editEquation = async (eqId) => {
+                    try {
+                        const eqRef = doc(db, "equations", eqId);
+                        const eqDoc = await getDoc(eqRef);
+    
+                        if (eqDoc.exists()) {
+                            const eq = eqDoc.data();
+    
+                            document.getElementById("equation-name").value = eq.name;
+                            document.getElementById("math-input").value = eq.equation;
+                            document.getElementById("equation-tags").value = Array.isArray(eq.tags) ? eq.tags.join(', ') : '';
+                            document.getElementById("equation-notes").value = eq.notes || '';
+                            editingIndex = eqId;
+    
+                            document.getElementById("variable-container").innerHTML = "";
+                            eq.variables.forEach(v => {
+                                let div = document.createElement("div");
+                                div.className = "variable-row";
+                                div.innerHTML = `
+                                    <input type="text" placeholder="Variable" class="var-input" value="${v.variable}">
+                                    <input type="text" placeholder="Name" class="var-name" value="${v.varName}">
+                                    <input type="text" placeholder="Units" class="var-units" value="${v.varUnits}">
+                                `;
+                                document.getElementById("variable-container").appendChild(div);
+                            });
+    
+                            document.getElementById("main-content").classList.add("blurred");
+                            document.getElementById("equation-popup").style.display = "block";
+                        } else {
+                            console.log("No such document!");
+                        }
+                    } catch (e) {
+                        console.error("Error getting document: ", e);
+                    }
+                }
+                window.deleteEquation = async (eqId) => {
+                    try {
+                        await deleteDoc(doc(db, "equations", eqId));
+                        displayEquations(); // Refresh the list of equations
+                    } catch (e) {
+                        console.error("Error deleting document: ", e);
+                    }
+                }
+
+                window.openCardPopup = async (eqId) => {
+                    try {
+                        // Fetch the equation document from Firestore using the eqId
+                        const eqRef = doc(db, "equations", eqId);
+                        const eqDoc = await getDoc(eqRef);
+                
+                        if (!eqDoc.exists()) {
+                            console.error("Equation not found in Firestore!");
+                            return;
+                        }
+                
+                        const eq = eqDoc.data();
+                
+                        // Populate the popup with equation details
+                        document.getElementById("popup-equation-name").textContent = eq.name;
+                        document.getElementById("popup-equation").setValue(eq.equation);
+                
+                        let variablesHtml = eq.variables.map(v => `<p><strong>${v.variable}</strong>: ${v.varName} ${v.varUnits ? '(' + v.varUnits + ')' : ''}</p>`).join('');
+                        document.getElementById("popup-variables").innerHTML = `<h3 style="margin-bottom:5px;">Variables</h3>${variablesHtml}`;
+                
+                        if (eq.notes) {
+                            document.getElementById("popup-notes").innerHTML = `<strong>Notes:</strong><p>${eq.notes}</p>`;
+                            document.getElementById("popup-notes").style.display = "block";
+                        } else {
+                            document.getElementById("popup-notes").style.display = "none";
+                        }
+                
+                        let tagsHtml = '';
+                        if (eq.tags && eq.tags.length > 0) {
+                            tagsHtml = eq.tags.map(tag => `<span style="background-color: #000000; color: white; padding: 3px 6px; border-radius: 4px; margin-right: 5px; font-size:0.8rem;">${tag}</span>`).join('');
+                            document.getElementById("popup-tags").innerHTML = tagsHtml;
+                        } else {
+                            document.getElementById("popup-tags").innerHTML = '';
+                        }
+                
+                        // Set up action buttons
+                        document.getElementById("popup-edit-btn").onclick = (event) => { event.stopPropagation(); editEquation(eqId); closeCardPopup(); };
+                        document.getElementById("popup-delete-btn").onclick = (event) => { event.stopPropagation(); confirmDelete(eqId); closeCardPopup(); };
+                        document.getElementById("popup-fav-btn").onclick = (event) => { event.stopPropagation(); toggleFavorite(eqId); };
+                        document.getElementById("popup-solve-btn").onclick = (event) => { event.stopPropagation(); alert('Solve feature coming soon!'); };
+                        document.getElementById("popup-fav-btn").style.color = eq.isFavorite ? 'gold' : 'gray';
+                
+                        // Show the popup
+                        document.getElementById("card-popup").style.display = "flex";
+                        document.getElementById("main-content").classList.add("blurred");
+                    } catch (e) {
+                        console.error("Error fetching equation from Firestore:", e);
+                    }
+                };
+                window.closeCardPopup = function () {
+                    document.getElementById("card-popup").style.display = "none";
+                    document.getElementById("main-content").classList.remove("blurred");
+                };           
+                
+                window.searchEquations = async function () {
+                    let searchQuery = document.getElementById("search-bar").value.toLowerCase(); // Renamed to searchQuery
+                    console.log("Search query:", searchQuery);
+                    document.querySelector('.tabbed-interface').style.display = 'none';
+                    document.getElementById("saved-equations-heading").style.display = 'none';
+                
+                    const user = auth.currentUser;
+                    if (!user) {
+                        alert("You must be logged in to search equations.");
+                        return;
+                    }
+                
+                    const list = document.getElementById("equation-list");
+                    list.style.display = "grid";
+                    list.style.gridTemplateColumns = "repeat(3, 1fr)";
+                    list.innerHTML = "";
+                
+                    try {
+                        // Fetch equations from Firestore
+                        const q = query(collection(db, "equations"), where("userId", "==", user.uid));
+                        const querySnapshot = await getDocs(q);
+                
+                        let equations = [];
+                        querySnapshot.forEach((doc) => {
+                            const eq = doc.data();
+                            eq.id = doc.id; // Add the document ID to the equation object
+                            equations.push(eq);
+                        });
+                        console.log("Fetched equations:", equations);
+                
+                        // Filter equations based on the search query
+                        equations.forEach((eq) => {
+                            let variablesText = eq.variables.map(v => `${v.variable} ${v.varName} ${v.varUnits}`).join(" ").toLowerCase();
+                            let tagsText = eq.tags ? eq.tags.join(' ').toLowerCase() : "";
+                            if (eq.name.toLowerCase().includes(searchQuery) || variablesText.includes(searchQuery) || tagsText.includes(searchQuery)) {
+                                let li = document.createElement("li");
+                                let variablesHtml = eq.variables.map(v => {
+                                    return `${v.variable}: ${v.varName} ${v.varUnits ? '(' + v.varUnits + ')' : ''}`;
+                                }).join("<br>");
+                                li.innerHTML = `
+                                    <div style="text-align: center; font-weight: bold; font-size: 1.05rem; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">
+                                        ${eq.name}
+                                    </div>
+                                    <div style="text-align: center; margin-bottom: 10px;">
+                                        <math-field read-only>${eq.equation}</math-field>
+                                    </div>
+                                    <div style="text-align: left; font-size: 0.9rem; color: #333; line-height: 1.4;">
+                                        ${variablesHtml}
+                                    </div>
+                                    <div class="card-actions" style="display: flex; justify-content: center; gap: 10px; margin-top: auto;">
+                                        <button class="icon-button" onclick="editEquation('${eq.id}'); event.stopPropagation();" title="Edit"><i class="fa fa-edit"></i></button>
+                                        <button class="icon-button" onclick="confirmDelete('${eq.id}'); event.stopPropagation();" title="Delete"><i class="fa fa-trash"></i></button>
+                                        <button class="icon-button fav-btn" onclick="toggleFavorite('${eq.id}'); event.stopPropagation();" style="color: ${eq.isFavorite ? 'gold' : 'gray'};" title="Favorite"><i class="fa fa-star"></i></button>
+                                        <button class="icon-button" onclick="openCardPopup('${eq.id}'); event.stopPropagation();" title="Expand"><i class="fa fa-expand"></i></button>
+                                    </div>
+                                `;
+                                list.appendChild(li);
+                            }
+                        });
+                        console.log("Filtered equations:", list.innerHTML);
+                
+                        // Display "Nothing found" message if no results match the query
+                        if (list.innerHTML.trim() === "") {
+                            list.innerHTML = `
+                                <div style="border: 2px dashed #ccc; padding: 20px; border-radius: 8px; margin: 20px auto; text-align: center; color: #555; width: 300%;">
+                                    <p><strong>Nothing found</strong></p>
+                                    <p>Make sure to search for an equation name, defined variable, or equation tag.</p>
+                                </div>
+                            `;
+                        }
+                
+                        // Reset to default display if the query is empty
+                        if (!searchQuery) {
+                            document.querySelector('.tabbed-interface').style.display = 'flex';
+                            displayEquations(); // Fallback to default display if query is empty
+                        }
+                    } catch (e) {
+                        console.error("Error searching equations:", e);
+                    }
+                };                </script>                                        
+</head>
+
+
+<!--announcement bar-->
+<!--logo-->
+<!--subtitles-->
+<!--search bar-->
+<!--add eq button-->
+<!--tabs-->
+<!--delete eq-->
+<!--eq popup-->
+<body style="font-family: 'Sora', sans-serif; background: #ffffff; max-width: 900px; margin: auto;">
+
+<!-- Nav Bar -->
+<!-- login register buttons -->
+<header>
+    <nav style="background: #ffffff; padding: 15px 20px; display: flex; justify-content: flex-end; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <a href="login.html" class="nav-link">Sign In</a>
+            <a href="register.html" class="cta-button">Try for Free</a>
+        </div>
+        <div id="profile-container" style="position: relative;">
+            <img src="images/pp/pp-og.png" alt="Profile Image" id="profile-image" style="width: 50px; height: 50px; border-radius: 50%; cursor: pointer;">
+            <div id="dropdown-menu" style="display: none; position: absolute; right: 0; background-color: white; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); border-radius: 5px; overflow: hidden;">
+                <div style="padding: 10px; display: flex; align-items: center;">
+                    <img src="images/pp/pp-og.png" alt="Profile" style="width: 30px; height: 30px; border-radius: 50%;">
+                    <span style="margin-left: 10px; font-size:12px;" id="user-email-display"></span>
+                </div>
+                <a href="#" style="display: flex; align-items: center; padding: 10px 15px; text-decoration: none; color: #333; font-size: 0.9rem;">
+                    <i class="fas fa-cog" style="margin-right: 10px; color: #666;"></i> Profile Settings
+                </a>
+                <a href="#" style="display: flex; align-items: center; padding: 10px 15px; text-decoration: none; color: #333; font-size: 0.9rem;">
+                    <i class="fas fa-question-circle" style="margin-right: 10px; color: #666;"></i> Help Center
+                </a>
+                <a href="#" id="dark-mode-toggle" style="display: flex; align-items: center; padding: 10px 15px; text-decoration: none; color: #333; font-size: 0.9rem;">
+                    <i class="fas fa-moon" style="margin-right: 10px; color: #666;"></i> Dark Mode
+                </a>      
+                <a href="#" style="display: flex; align-items: center; padding: 10px 15px; text-decoration: none; color: #333; font-size: 0.9rem; border-top: 1px solid #f0f0f0;" onclick="signOutUser()">
+                    <i class="fas fa-sign-out-alt" style="margin-right: 10px; color: #666;"></i>Sign Out
+                </a>
+            </div>    </nav>
+</header>
+
+<!--announcement bar-->
+<!--<div id="announcement-banner" style="background: #ec6i868eb;">
+    <span class="banner-message">
+      EQTB is in beta! We would love to hear your <a href="#submit-feedback" onclick="scrollToFeedback()">feedback</a>
+    </span>
+    <button onclick="closeBanner()" class="banner-close">&times;</button>
+  </div>
+
+<!--logo-->
+<!--subtitles-->
+    <section style="text-align: center;">
+        <img src="images/logo/logo-UtxtL.png" alt="EQTB Logo" style="width: 200px; height: auto; margin: -30px auto;">        
+        <p style="color: #000000;">Welcome to your equation toolbox.</p>
+    </section>
+<br/>
+
+<div id="main-content">
+<!--search bar-->
+    <section style="text-align: center;">
+        <input type="text" id="search-bar" class="full-width-input" placeholder="Search equations or variables..." oninput="searchEquations()">    
+    </section>
+
+<!--add eq button-->
+    <section style="display: flex; justify-content: center;">
+        <button class="cta-button full-width-input" onclick="openEquationPopup()">Add Equation</button>
+    </section>
+<br/>
+
+<!--tabs-->
+    <section style="text-align: center;">
+        <div class="tabbed-interface">
+            <button class="tab-button" onclick="displayHome()" title="Home"><i class="fa fa-home"></i></button>
+            <button class="tab-button" onclick="displayToolboxMenu()" title="Toolbox"><i class="fa fa-toolbox"></i></button>
+        </div>
+    </section>
+    <div id="toolbox-menu" style="text-align: center; display: none;">
+        <button class="menu-option" onclick="filterView('all')">All Equations</button>
+        <button class="menu-option" onclick="filterView('favorites')">Favorites</button>
+    </div>
+
+    <!--?-->
+    <section>
+        <h2 id="saved-equations-heading" style="color: #000000; display: none;">Saved Equations</h2>
+        <div id="first-equation-message" style="display: none; border: 2px dashed #ccc; padding: 20px; border-radius: 8px; margin: 20px auto; width: 80%; text-align: center;"></div>
+        <ul id="equation-list"></ul>
+    </section>
+
+    </div>
+    
+<!--delete eq-->
+    <div id="delete-popup" class="popup">
+        <div class="popup-content">
+            <p>Are you sure you want to delete this equation?</p>
+            <button id="confirm-delete" style="background: #dc3545;">Yes</button>
+            <button id="cancel-delete">No</button>
+        </div>
+    </div>
+
+<!--eq popup-->
+    <div id="equation-popup" class="popup">
+        <div class="popup-content">
+            <span class="close" onclick="closeEquationPopup()">&times;</span>
+            <h2 style="text-align:center; margin-bottom: 10px;">Add/Edit Equation</h2>
+            
+            <label for="equation-name" style="font-weight: bold;">Equation Name</label>
+            <input type="text" id="equation-name" placeholder="e.g. Force equation" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+ 
+            <label for="math-input" style="font-weight: bold;">Equation</label>
+            <math-field id="math-input" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;"></math-field>
+ 
+            <label style="font-weight: bold;">Variables</label>
+            <div id="variable-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            <button class="cta-button" onclick="addVariable()" style="margin-top: 10px; width: fit-content; align-self: center;">+ Add Variable</button>
+            
+            <label for="equation-tags" style="font-weight: bold;">Tags</label>
+            <input type="text" id="equation-tags" placeholder="e.g. class, subject, variable" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+            
+            <label for="equation-notes" style="font-weight: bold;">Notes</label>
+            <textarea id="equation-notes" placeholder="Write notes about this equation..." style="padding: 10px; border-radius: 5px; border: 1px solid #ccc; resize: vertical; min-height: 80px;"></textarea>
+            
+            <button class="cta-button" onclick="window.saveEquation()" style="margin-top: 15px;">Save Equation</button>
+        </div>
+    </div>
+
+    <!--announcement bar-->
+
+<!--new eq popup-->
+<!--home tab-->
+<!--equation cards-->
+<!--fav and all categories-->
+<!--search equations function-->
+<!--nothing found in search-->
+<!--delete eq-->
+<!--banner time-->
+<!--feedback popup form-->
+
+<script>
+// Function to toggle the Toolbox menu
+function displayToolboxMenu() {
+    let menu = document.getElementById('toolbox-menu');
+    menu.style.display = 'block';
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    document.querySelector('.tab-button[title="Toolbox"]').classList.add('active');
+    document.querySelectorAll('.menu-option').forEach(option => {
+        option.classList.remove('active');
+    });
+    document.querySelector(`.menu-option[onclick*="${filter}"]`).classList.add('active');
+}
+
+//new equation popup
+        function openEquationPopup() {
+            document.getElementById("equation-name").value = '';  // Clear the equation name field
+            document.getElementById("math-input").value = '';  // Clear the math input field
+            document.getElementById("variable-container").innerHTML = '';  // Remove any existing variable inputs
+        document.getElementById("equation-popup").style.display = "block";  // Show the popup
+        document.getElementById("main-content").classList.add("blurred");
+        }
+
+//home tab
+        function displayHome() {
+            let list = document.getElementById("equation-list");
+            list.style.display = "block";
+            list.style.textAlign = "center";
+    let socialsHtml = `
+    <div style="display: flex; justify-content: center; width: 100%;">
+        <div style="display: inline-block; border: 2px dashed #ccc; padding: 20px; border-radius: 8px; margin: 20px auto; width: 80%; text-align: center;">
+            <section style="max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #000000;">Welcome.</h2>
+
+                <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;">
+
+                <h3>Getting Started</h3>
+                <p>Watch our short tutorial to learn how to use the toolbox effectively.</p>
+                <div style="margin: 20px 0;">
+                    <div style="background: #eee; padding: 30px; border-radius: 8px; color: #777;">[Tutorial video coming soon]</div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;">
+
+                <h3 id="#feedback">Feedback</h3>
+                <p>We would love to hear your feedback/suggestions!</p>
+                <button class='cta-button' id="submit-feedback" onclick="openFeedbackPopup()" style="margin: auto;">Send Feedback</button>                
+                <hr style="border: none; border-top: 1px solid #ccc; margin: 20px 0;">
+
+                <h3>Connect</h3>
+                <div style="display: flex; justify-content: center; gap: 30px; font-size: 28px; margin: 15px 0;">
+                    <a href="https://instagram.com" target="_blank" style="color: black;"><i class="fab fa-instagram"></i></a>
+                    <a href="https://tiktok.com" target="_blank" style="color: black;"><i class="fab fa-tiktok"></i></a>
+                    <a href="https://youtube.com" target="_blank" style="color: black;"><i class="fab fa-youtube"></i></a>
+                </div>
+            </section>
+        </div>
+    </div>
+    `;
+            list.innerHTML = socialsHtml;
+            document.getElementById("first-equation-message").style.display = 'none';  // Hide the no-equation message
+    // Update tab active state
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    document.querySelector('.tab-button[title="Home"]').classList.add('active');
+        }
+
+        function closeEquationPopup() {
+        document.getElementById("equation-popup").style.display = "none";
+        document.getElementById("main-content").classList.remove("blurred");
+        }
+
+        function addVariable() {
+            let container = document.getElementById("variable-container");
+            let div = document.createElement("div");
+            div.className = "variable-row";
+            div.innerHTML = `
+                <input type="text" placeholder="Variable" class="var-input">
+                <input type="text" placeholder="Name" class="var-name">
+                <input type="text" placeholder="Units" class="var-units">
+            `;
+            container.appendChild(div);
+        }
+
+        
+//equation cards
+
+
+//fav and all categories
+        function filterView(filter) {
+    // Remove active classes from all menu options and main tabs
+    document.querySelectorAll('.menu-option').forEach(option => {
+        option.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    const allEquations = JSON.parse(localStorage.getItem("equations"));
+    let filteredEquations = [];
+    switch (filter) {
+        case 'favorites':
+            filteredEquations = allEquations.filter(eq => eq.isFavorite);
+            break;
+        case 'all':
+            filteredEquations = allEquations.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+    }
+    if (filter === 'favorites' && filteredEquations.length === 0) {
+        document.getElementById("first-equation-message").innerHTML = '<h3>There is nothing here.</h3><p>Your equations will show up here.</p>';
+        document.getElementById("first-equation-message").style.display = 'block';
+    } else {
+        document.getElementById("first-equation-message").style.display = 'none';
+    }
+
+    // Highlight the appropriate sub-tab based on filter
+    if (filter === 'all') {
+        document.querySelector('.menu-option[onclick*="all"]').classList.add('active');
+    } else if (filter === 'favorites') {
+        document.querySelector('.menu-option[onclick*="favorites"]').classList.add('active');
+    }
+
+    // Set Toolbox tab as active
+    document.querySelector('.tab-button[title="Toolbox"]').classList.add('active');
+
+    displayEquations(filteredEquations);
+}
+
+
+        function confirmDelete(index) {
+            let deletePopup = document.getElementById("delete-popup");
+            document.getElementById("main-content").classList.add("blurred");
+            deletePopup.style.display = "block";
+
+            document.getElementById("confirm-delete").onclick = function() {
+                deleteEquation(index);
+                deletePopup.style.display = "none";
+                document.getElementById("main-content").classList.remove("blurred");
+            };
+
+            document.getElementById("cancel-delete").onclick = function() {
+                deletePopup.style.display = "none";
+                document.getElementById("main-content").classList.remove("blurred");
+            };
+        }
+
+
+//banner time
+        function checkBanner() {
+            const lastClosed = localStorage.getItem('bannerClosed');
+            const now = new Date();
+            if (!lastClosed || now.getTime() - new Date(lastClosed).getTime() > 860) {  // 1 hour iin ms is 3600000 24 hours in ms = 86400000
+                document.getElementById('announcement-banner').style.display = 'block';
+            }
+        }
+
+        function closeBanner() {
+    localStorage.setItem('bannerClosed', new Date().toISOString());
+    document.getElementById('announcement-banner').style.display = 'none';
+    setTimeout(() => {
+        document.getElementById('announcement-banner').style.display = 'block';
+    }, 3600000);  // Reopen banner after 1 hour
+}
+
+        window.onload = function() {
+            displayHome();
+            checkBanner();
+        };
+
+
+//feedback popup form
+function openFeedbackPopup() {
+    document.getElementById("feedback-popup").style.display = "block";
+    document.getElementById("main-content").classList.add("blurred");
+}
+
+function closeFeedbackPopup() {
+    document.getElementById("feedback-popup").style.display = "none";
+    document.getElementById("main-content").classList.remove("blurred");
+}
+
+function submitFeedback() {
+    const name = document.getElementById("feedback-name").value.trim();
+    const email = document.getElementById("feedback-email").value.trim();
+    const message = document.getElementById("feedback-message").value.trim();
+
+    // Only validate the required field (feedback-message)
+    if (!message) {
+        alert("Please fill out the feedback field before submitting.");
+        return;
+    }
+
+    alert("Thank you for your feedback!");
+    closeFeedbackPopup();
+
+    // Clear the form
+    document.getElementById("feedback-form").reset();
+}
+document.getElementById('profile-image').addEventListener('click', function() {
+    const dropdownMenu = document.getElementById('dropdown-menu');
+    const contentToBlur = document.getElementById('main-content'); // This assumes all blurrable content is within a container with id 'main-content'
+    const otherContentToBlur = document.getElementsByTagName('footer')[0]; // Also blur the footer, add more selectors as needed
+
+    if (dropdownMenu.style.display === 'block') {
+        dropdownMenu.style.display = 'none';
+        contentToBlur.classList.remove('blurred');
+        otherContentToBlur.classList.remove('blurred');
+    } else {
+        dropdownMenu.style.display = 'block';
+        contentToBlur.classList.add('blurred');
+        otherContentToBlur.classList.add('blurred');
+    }
+});
+document.getElementById('dark-mode-toggle').addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
+    document.querySelectorAll('.button, .cta-button, nav, a').forEach(function(el) {
+        el.classList.toggle('dark-mode-button'); // Apply dark mode styles to buttons and links
+    });
+});
+</script>
+
+<!--expand card-->
+<!-- Feedback Popup -->
+
+<!--expand card-->
+<div id="card-popup" class="popup" onclick="if(event.target === this) closeCardPopup()">
+    <div class="popup-content" style="max-width: 600px; width: 90%; background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+        <span class="close" onclick="closeCardPopup()" style="font-size: 24px;">&times;</span>
+        
+        <h2 id="popup-equation-name" style="text-align: center; color: #000000; margin-bottom: 10px; font-weight: 600;"></h2>
+        
+        <div style="background: #f9f9f9; border-radius: 10px; padding: 15px; margin: 15px auto;">
+            <math-field id="popup-equation" read-only style="font-size: 1.3rem;"></math-field>
+        </div>
+        
+        <div id="popup-tags" style="text-align: center; margin-top: 10px;"></div>
+        
+        <hr style="border: none; border-top: 1px solid #ccc; margin: 15px 0;">
+
+        <div id="popup-variables" style="margin-top: 10px; text-align: left;"></div>
+        
+        <div id="popup-notes" style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 8px; font-size: 0.9rem;"></div>
+        
+        <hr style="border: none; border-top: 1px solid #ccc; margin: 15px 0;">
+
+        <div class="card-actions" id="popup-actions" style="display: flex; justify-content: center; gap: 15px; margin-top: 15px;">
+            <button class="icon-button" id="popup-edit-btn" style="color: #4CAF50;"><i class="fa fa-edit"></i></button>
+            <button class="icon-button" id="popup-delete-btn" style="color: #f44336;"><i class="fa fa-trash"></i></button>
+            <button class="icon-button fav-btn" id="popup-fav-btn"><i class="fa fa-star"></i></button>
+            <button class="icon-button" id="popup-solve-btn" title="Solve Equation"><i class="fa fa-calculator"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Feedback Popup -->
+<div id="feedback-popup" class="popup" onclick="if(event.target === this) closeFeedbackPopup()">
+    <div class="popup-content" style="max-width: 500px; width: 90%; background: #ffffff; border-radius: 12px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+        <span class="close" onclick="closeFeedbackPopup()" style="font-size: 24px;">&times;</span>
+        
+        <h2 id="#feedback" style="text-align: center; color: #000000; margin-top: 1px;">Send Feedback</h2>
+        
+        <form action='' id="feedback-form">
+            <label for="feedback-name" style="font-weight: bold;">Your Name (optional)</label>
+            <input type="text" id="feedback-name" placeholder="Enter your name" style="width: 95%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
+            
+            <label for="feedback-email" style="font-weight: bold;">Your Email (optional)</label>
+            <input type="email" id="feedback-email" placeholder="Enter your email" style="width: 95%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px;">
+            
+            <label for="feedback-message" style="font-weight: bold;">Feedback (required)</label>
+            <textarea id="feedback-message" placeholder="What did you like, what didn't you like?" style="width: 95%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical; min-height: 100px;" required></textarea>
+
+            <label for="issues-message" style="font-weight: bold;">Issues (optional)</label>
+            <textarea id="issues-message" placeholder="Did you have any issues or find any bugs?" style="width: 95%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical; min-height: 100px;"></textarea>
+
+            <label for="feature-message" style="font-weight: bold;">Feature Requests (optional)</label>
+            <textarea id="feature-message" placeholder="What features would you like to see?" style="width: 95%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; resize: vertical; min-height: 100px;"></textarea>
+
+            <button type="submit" onclick="submitFeedback()" style="margin-top: 15px; width: 100%; background: #000000; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">Submit</button>
+        </form>
+    </div>
+</div>
+</div>
+<!--footer-->
+<footer style="text-align: center; padding: 20px; background: #ffffff; color: #000000; font-size: 0.9rem;">
+    <p>&copy; 2025 Equation Toolbox. All rights reserved.</p>
+    <p>Built by Quad A INC.</p>
+</footer>
+
+
+
+</body>
+</html>
